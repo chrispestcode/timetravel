@@ -6,28 +6,23 @@ import (
 	"net/http"
 	"time"
 
-	"github.com/gorilla/mux"
-	"github.com/rainbowmga/timetravel/api"
-	"github.com/rainbowmga/timetravel/service"
-)
+	"timetravel/api"
+	"timetravel/service"
+	"timetravel/util"
 
-// logError logs all non-nil errors
-func logError(err error) {
-	if err != nil {
-		log.Printf("error: %v", err)
-	}
-}
+	"github.com/gorilla/mux"
+)
 
 func main() {
 	router := mux.NewRouter()
 
-	service := service.NewInMemoryRecordService()
+	service := service.NewSQLiteRecordService("timetravel.db")
 	api := api.NewAPI(&service)
 
 	apiRoute := router.PathPrefix("/api/v1").Subrouter()
 	apiRoute.Path("/health").HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		err := json.NewEncoder(w).Encode(map[string]bool{"ok": true})
-		logError(err)
+		util.LogError(err)
 	})
 	api.CreateRoutes(apiRoute)
 
