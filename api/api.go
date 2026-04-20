@@ -2,7 +2,7 @@ package api
 
 import (
 	"github.com/gorilla/mux"
-	"github.com/rainbowmga/timetravel/service"
+	"timetravel/service"
 )
 
 type API struct {
@@ -14,7 +14,7 @@ func NewAPI(records service.RecordService) *API {
 }
 
 // generates all api routes
-func (a *API) CreateRoutes(routes *mux.Router) {
-	routes.Path("/records/{id}").HandlerFunc(a.GetRecords).Methods("GET")
-	routes.Path("/records/{id}").HandlerFunc(a.PostRecords).Methods("POST")
+func (api *API) CreateRoutes(routes *mux.Router) {
+	routes.Path("/records/{id}").HandlerFunc(api.GetRecords).Methods("GET")
+	routes.Path("/records/{id}").HandlerFunc(api.PostRecords).Methods("POST")
 }

@@ -5,18 +5,15 @@ import (
 	"errors"
 	"log"
 	"net/http"
+
+	"timetravel/util"
 )
 
 var (
 	ErrInternal = errors.New("internal error")
 )
 
-// logs an error if it's not nil
-func logError(err error) {
-	if err != nil {
-		log.Printf("error: %v", err)
-	}
-}
+var logError = util.LogError
 
 // writeJSON writes the data as json.
 func writeJSON(w http.ResponseWriter, data interface{}, statusCode int) error {
