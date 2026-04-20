@@ -1,7 +1,7 @@
 from fastapi import APIRouter
 
 from api.handlers_records import make_get_records, make_post_records
-from service.record import RecordService
+from service.record_service import RecordService
 
 
 class API:

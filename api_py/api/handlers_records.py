@@ -6,7 +6,7 @@ from fastapi.responses import JSONResponse
 
 from api.helpers import log_error, write_error, write_service_error
 from entity.record import Record
-from service.record import RecordService, ServiceError
+from service.record_service import RecordService, ServiceError
 
 
 def make_get_records(records: RecordService) -> Callable:

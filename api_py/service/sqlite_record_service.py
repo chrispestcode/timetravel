@@ -3,7 +3,7 @@ import json
 import aiosqlite
 
 from entity.record import Record
-from service.record import RecordService, ServiceError
+from service.record_service import RecordService, ServiceError
 from util.log import log_error
 from service.queries import *
 

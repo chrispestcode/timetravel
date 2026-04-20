@@ -15,5 +15,4 @@ class Record(BaseModel):
         """Returns a deep copy so mutations don't affect the stored record."""
         return self.model_copy(deep=True)
     
-    
     # TODO needs to be subclassed for various record versions

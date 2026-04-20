@@ -1,7 +1,7 @@
 from fastapi.responses import JSONResponse
 from loguru import logger
 
-from service.record import ServiceError
+from service.record_service import ServiceError
 from util.log import log_error
 
 ErrInternal = Exception("internal error")

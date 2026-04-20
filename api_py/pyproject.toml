@@ -14,7 +14,15 @@ dependencies = [
 ]
 
 [dependency-groups]
-dev = ["ruff", "pyright", "pytest", "pytest-asyncio", "pytest-cov"]
+dev = [
+    "ruff",
+    "pyright",
+    "pytest",
+    "pytest-asyncio",
+    "pytest-cov",
+    "pytest-timeout",
+    "httpx>=0.28.1",
+]
 
 [tool.ruff]
 line-length = 100
