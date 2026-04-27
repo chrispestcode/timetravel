@@ -2,6 +2,7 @@ from entity.record_v2 import _ISO_DATE_FMT, _ISO_DATETIME_FMT
 
 CREATE_TABLE_RECORDS = "CREATE_TABLE_RECORDS"
 GET_RECORD_BY_ID = "GET_RECORD_BY_ID"
+GET_V2_RECORD_BY_RECORD_ID = "GET_V2_RECORD_BY_RECORD_ID"
 INSERT_RECORD = "INSERT_RECORD"
 UPDATE_RECORD = "UPDATE_RECORD"
 GET_TABLES = "GET_TABLES"
@@ -34,12 +35,9 @@ queries = {
                     last_updated DATETIME NOT NULL DEFAULT (strftime('{_ISO_DATETIME_FMT}', 'now')),
                     policy_tier TEXT NOT NULL,
                     policy_domain TEXT NOT NULL);""",
-            GET_RECORD_BY_ID : f"SELECT * FROM {RECORDS_V2_TABLE} WHERE id = ?",
-            INSERT_RECORD : f"INSERT OR IGNORE INTO {RECORDS_V2_TABLE} (record_id, company_id, policy_start_date, policy_end_date, policy_status, created_at, last_updated, policy_tier, policy_domain) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?);",
-            UPDATE_RECORD : f"UPDATE {RECORDS_V2_TABLE} SET record_id = ?, company_id = ?, policy_start_date = ?, policy_end_date = ?, policy_status = ?, created_at = ?, last_updated = ?, policy_tier = ?, policy_domain = ? WHERE record_id = ?;",
-            UPDATE_RECORD_POLICY_START_DATE : f"UPDATE {RECORDS_V2_TABLE} SET policy_start_date = ? WHERE record_id = ?;",
-            GET_RECORD_HISTORY : f"SELECT * FROM records_v2 WHERE record_id = ? ORDER BY POLICY_END_DATE ASC;",
-            GET_LATEST_RECORD_VERSION: f"SELECT * FROM {RECORDS_V2_TABLE} WHERE record_id = ? AND status = 'ACTIVE'  LIMIT 1;",
+            GET_RECORD_BY_ID: f"SELECT * FROM {RECORDS_V2_TABLE} WHERE id = ?;",
+            GET_V2_RECORD_BY_RECORD_ID: f"SELECT * FROM {RECORDS_V2_TABLE} WHERE record_id = ?;",
+            INSERT_RECORD: f"INSERT INTO {RECORDS_V2_TABLE} (record_id, company_id, policy_start_date, policy_end_date, policy_status, created_at, last_updated, policy_tier, policy_domain) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?);",
             GET_TABLES: "SELECT name FROM sqlite_schema WHERE type='table' ORDER BY name;"
         }
 }
