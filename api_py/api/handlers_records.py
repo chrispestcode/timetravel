@@ -1,12 +1,12 @@
 from collections.abc import Callable
 from http import HTTPStatus
 
-from fastapi import Request
+from fastapi import Query, Request
 from fastapi.responses import JSONResponse
 
 from api.helpers import write_error, write_service_error
 from entity.record import Record
-from service.record_service import RecordService
+from service.record_service import RecordService, RecordV2Protocol
 
 
 def make_get_records(records: RecordService) -> Callable:
@@ -61,4 +61,56 @@ def make_post_records(records: RecordService) -> Callable:
 
     return post_records
 
-#TODO add all other endpoints, maybe consider adding a layer for record reconciliation
+
+def make_get_latest_record_version(records: RecordV2Protocol) -> Callable:
+    """Returns a GET /records/v2/latest?record_id={id} handler bound to the given service."""
+    ''' Query objects are inferred as Query Parameters by FastAPI '''
+    
+    async def get_latest_record_version(record_id: int = Query(..., description="record_id to look up")) -> JSONResponse:
+        try:
+            record = await records.get_latest_record_version(record_id)
+        except Exception as err:
+            return write_service_error(err)
+
+        if record is None:
+            return JSONResponse(content={}, status_code=HTTPStatus.OK)
+
+        return JSONResponse(content=record.model_dump(mode="json"), status_code=HTTPStatus.OK)
+
+    return get_latest_record_version
+
+
+def make_get_record_history(records: RecordV2Protocol) -> Callable:
+    """Returns a GET /records/v2/history?record_id={id} handler bound to the given service."""
+    ''' Query objects are inferred as Query Parameters by FastAPI '''
+
+    async def get_record_history(record_id: int = Query(..., description="record_id to look up")) -> JSONResponse:
+        try:
+            results = await records.get_record_history(record_id)
+        except Exception as err:
+            return write_service_error(err)
+
+        return JSONResponse(
+            content=[r.model_dump(mode="json") for r in results],
+            status_code=HTTPStatus.OK,
+        )
+
+    return get_record_history
+
+
+def make_get_record_version(records: RecordV2Protocol) -> Callable:
+    """Returns a GET /records/v2/version/{version_id}?record_id={id} handler."""
+    ''' Query objects are inferred as Query Parameters by FastAPI '''
+    
+    async def get_record_version(version_id: int, record_id: int = Query(..., description="record_id to look up")) -> JSONResponse:
+        try:
+            record = await records.get_record_version(record_id, version_id)
+        except Exception as err:
+            return write_service_error(err)
+
+        if record is None:
+            return JSONResponse(content={}, status_code=HTTPStatus.OK)
+
+        return JSONResponse(content=record.model_dump(mode="json"), status_code=HTTPStatus.OK)
+
+    return get_record_version

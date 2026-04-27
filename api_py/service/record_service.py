@@ -1,7 +1,9 @@
 from abc import ABC, abstractmethod
 from enum import IntEnum
+from typing import Protocol
 
 from entity.record import Record
+from entity.record_v2 import RecordV2
 
 
 class ServiceErrorCode(IntEnum):
@@ -56,3 +58,15 @@ class RecordService(ABC):
     async def update_record(self, id: int, updates: dict[str, str | None]) -> Record:
         """Updates record data. None values delete the key. Raises ServiceError if not found."""
         ...
+
+
+class RecordV2Protocol(Protocol):
+    """Structural protocol for services that implement v2 record operations.
+
+    Any class with these three async methods satisfies this protocol without
+    explicit inheritance — SQLiteRecordService is the primary implementor.
+    """
+
+    async def get_latest_record_version(self, record_id: int) -> RecordV2 | None: ...
+    async def get_record_history(self, record_id: int) -> list[RecordV2]: ...
+    async def get_record_version(self, record_id: int, version_id: int) -> RecordV2 | None: ...

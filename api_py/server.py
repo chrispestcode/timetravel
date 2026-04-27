@@ -12,7 +12,7 @@ service = SQLiteRecordService("timetravel.db")
 api = API(records=service)
 
 app.include_router(api.router, prefix="/api/v1")
-
+app.include_router(api.router, prefix="/api/v2")
 
 @app.get("/api/v1/health")
 async def health() -> JSONResponse:
