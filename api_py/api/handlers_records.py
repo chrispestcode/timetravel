@@ -4,9 +4,9 @@ from http import HTTPStatus
 from fastapi import Request
 from fastapi.responses import JSONResponse
 
-from api.helpers import log_error, write_error, write_service_error
+from api.helpers import write_error, write_service_error
 from entity.record import Record
-from service.record_service import RecordService, ServiceError
+from service.record_service import RecordService
 
 
 def make_get_records(records: RecordService) -> Callable:
@@ -15,14 +15,12 @@ def make_get_records(records: RecordService) -> Callable:
     async def get_records(id: int) -> JSONResponse:
         try:
             record = await records.get_record(id)
-        except ServiceError as err:
-            if err.code == HTTPStatus.NOT_FOUND:
-                return write_error(f"record of id {id} does not exist", HTTPStatus.NOT_FOUND)
-            return write_service_error(err)
         except Exception as err:
             return write_service_error(err)
 
-        log_error(None)
+        if record is None:
+            return JSONResponse(content={}, status_code=HTTPStatus.OK)
+
         return JSONResponse(content=record.model_dump(), status_code=HTTPStatus.OK)
 
     return get_records
@@ -40,35 +38,26 @@ def make_post_records(records: RecordService) -> Callable:
         except Exception:
             return write_error("invalid input; could not parse json", HTTPStatus.BAD_REQUEST)
 
-        record: Record | None = None
-        err: Exception | None = None
-
+        existing: Record | None = None
         try:
             existing = await records.get_record(id)
-        except ServiceError as get_err:
-            if get_err.code == HTTPStatus.NOT_FOUND:  # record does not exist, create it
-                # exclude the delete updates
-                record_map = {k: v for k, v in body.items() if v is not None}
-                record = Record(id=id, data=record_map)
-                try:
-                    await records.create_record(record)
-                except Exception as create_err:
-                    err = create_err
-            else:
-                err = get_err
-        except Exception as get_err:
-            err = get_err
-        else:  # record exists, update it
-            try:
-                record = await records.update_record(id, body)
-            except Exception as update_err:
-                err = update_err
-            _ = existing  # consumed by update
-
-        if err is not None:
+        except Exception as err:
             return write_service_error(err)
 
-        return JSONResponse(content=record.model_dump() if record else {}, status_code=HTTPStatus.OK)
+        if existing is None:
+            record_map = {k: v for k, v in body.items() if v is not None}
+            record = Record(id=id, data=record_map)
+            try:
+                await records.create_record(record)
+            except Exception as err:
+                return write_service_error(err)
+        else:
+            try:
+                record = await records.update_record(id, body)
+            except Exception as err:
+                return write_service_error(err)
+
+        return JSONResponse(content=record.model_dump(), status_code=HTTPStatus.OK)
 
     return post_records
 

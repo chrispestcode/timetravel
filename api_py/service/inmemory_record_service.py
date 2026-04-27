@@ -1,6 +1,5 @@
 from entity.record import Record
 from service.record_service import RecordService, ServiceError
-from util.log import log_error
 
 
 class InMemoryRecordService(RecordService):
@@ -13,13 +12,11 @@ class InMemoryRecordService(RecordService):
     def __init__(self) -> None:
         self._data: dict[int, Record] = {}
 
-    async def get_record(self, id: int) -> Record:
+    async def get_record(self, id: int) -> Record | None:
         record = self._data.get(id)
         if record is None:
-            err = ServiceError.not_found()
-            log_error(err)
-            raise err
-        return record.copy()  # copy so caller mutations don't affect stored record
+            return None
+        return record.copy()
 
     async def create_record(self, record: Record) -> None:
         if record.id <= 0:
@@ -37,9 +34,7 @@ class InMemoryRecordService(RecordService):
     async def update_record(self, id: int, updates: dict[str, str | None]) -> Record:
         record = self._data.get(id)
         if record is None:
-            err = ServiceError.not_found()
-            log_error(err)
-            raise err
+            raise ServiceError.not_found()
 
         for key, value in updates.items():
             if value is None:  # deletion update

@@ -1,7 +1,8 @@
 from pydantic import BaseModel
+from entity.record_interface import RecordInterface
+from typing import Self
 
-
-class Record(BaseModel):
+class Record(BaseModel, RecordInterface):
     """A stored record with an integer ID and a key-value data map.
 
     Example:
@@ -11,8 +12,7 @@ class Record(BaseModel):
     id: int
     data: dict[str, str] = {}
 
-    def copy(self) -> "Record":
+    def clone(self) -> Self:
         """Returns a deep copy so mutations don't affect the stored record."""
         return self.model_copy(deep=True)
     
-    # TODO needs to be subclassed for various record versions
