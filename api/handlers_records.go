@@ -7,9 +7,10 @@ import (
 	"net/http"
 	"strconv"
 
-	"github.com/gorilla/mux"
 	"timetravel/entity"
 	"timetravel/service"
+
+	"github.com/gorilla/mux"
 )
 
 // writeServiceError writes the appropriate HTTP response for a service error.
