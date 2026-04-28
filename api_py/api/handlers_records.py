@@ -26,6 +26,23 @@ def make_get_records(records: RecordService) -> Callable:
     return get_records
 
 
+def make_get_records_v1(records: RecordService) -> Callable:
+    """Returns a GET /records/{id} handler for v1: 400 when record is not found."""
+
+    async def get_records_v1(id: int) -> JSONResponse:
+        try:
+            record = await records.get_record(id)
+        except Exception as err:
+            return write_service_error(err)
+
+        if record is None:
+            return write_error(f"record of id {id} does not exist", HTTPStatus.BAD_REQUEST)
+
+        return JSONResponse(content=record.model_dump(), status_code=HTTPStatus.OK)
+
+    return get_records_v1
+
+
 def make_post_records(records: RecordService) -> Callable:
     """Returns a POST /records/{id} handler bound to the given service.
 
@@ -63,9 +80,9 @@ def make_post_records(records: RecordService) -> Callable:
 
 
 def make_get_latest_record_version(records: RecordV2Protocol) -> Callable:
-    """Returns a GET /records/v2/latest?record_id={id} handler bound to the given service."""
-    ''' Query objects are inferred as Query Parameters by FastAPI '''
-    
+    """Returns a GET /records/latest?record_id={id} handler bound to the given service."""
+    # record_id: Query(...) tells FastAPI this is a query parameter, not a path segment.
+
     async def get_latest_record_version(record_id: int = Query(..., description="record_id to look up")) -> JSONResponse:
         try:
             record = await records.get_latest_record_version(record_id)
@@ -81,8 +98,8 @@ def make_get_latest_record_version(records: RecordV2Protocol) -> Callable:
 
 
 def make_get_record_history(records: RecordV2Protocol) -> Callable:
-    """Returns a GET /records/v2/history?record_id={id} handler bound to the given service."""
-    ''' Query objects are inferred as Query Parameters by FastAPI '''
+    """Returns a GET /records/history?record_id={id} handler bound to the given service."""
+    # record_id: Query(...) tells FastAPI this is a query parameter, not a path segment.
 
     async def get_record_history(record_id: int = Query(..., description="record_id to look up")) -> JSONResponse:
         try:
@@ -99,9 +116,9 @@ def make_get_record_history(records: RecordV2Protocol) -> Callable:
 
 
 def make_get_record_version(records: RecordV2Protocol) -> Callable:
-    """Returns a GET /records/v2/version/{version_id}?record_id={id} handler."""
-    ''' Query objects are inferred as Query Parameters by FastAPI '''
-    
+    """Returns a GET /records/version/{version_id}?record_id={id} handler."""
+    # record_id: Query(...) tells FastAPI this is a query parameter, not a path segment.
+
     async def get_record_version(version_id: int, record_id: int = Query(..., description="record_id to look up")) -> JSONResponse:
         try:
             record = await records.get_record_version(record_id, version_id)

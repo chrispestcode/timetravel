@@ -34,22 +34,22 @@ class TestAPI:
     async def client(self, mock_service: RecordService) -> AsyncGenerator[httpx.AsyncClient, None]:
         app = FastAPI()
         api = API(records=mock_service)
-        app.include_router(api.router, prefix="/api/v1")
-        app.include_router(api.router, prefix="/api/v2")
+        app.include_router(api.v1_router, prefix="/api/v1")
+        app.include_router(api.v2_router, prefix="/api/v2")
 
         @app.get("/api/v1/health")
-        async def health() -> JSONResponse:
+        async def health_v1() -> JSONResponse:
             return JSONResponse(content={"ok": True})
 
         @app.get("/api/v2/health")
-        async def health() -> JSONResponse:
+        async def health_v2() -> JSONResponse:
             return JSONResponse(content={"ok": True})
-        
+
         async with httpx.AsyncClient(
             transport=httpx.ASGITransport(app=app), base_url="http://test"
         ) as c:
             yield c
-    
+
     @pytest.fixture
     def api_version(self, request: pytest.FixtureRequest) -> str:
         return f'/api/v{request.param}'
@@ -72,14 +72,20 @@ class TestAPI:
         assert body["id"] == self.record.id
         assert body["data"] == self.record.data
         mock_service.get_record.assert_called_once_with(1)
-    
-    @pytest.mark.parametrize("api_version", [1,2], indirect=True)
-    async def test_get_record_not_found(self, client: httpx.AsyncClient, mock_service: RecordService, api_version: str) -> None:
+
+    async def test_get_record_not_found_v1(self, client: httpx.AsyncClient, mock_service: RecordService) -> None:
         mock_service.get_record = AsyncMock(return_value=None)
-        response = await client.get(f"{api_version}/records/999")
-        assert response.status_code == HTTPStatus.OK
+        response = await client.get("/api/v1/records/999")
+        assert response.status_code == HTTPStatus.BAD_REQUEST
+        assert response.json() == {"error": "record of id 999 does not exist"}
         mock_service.get_record.assert_called_once_with(999)
+
+    async def test_get_record_not_found_v2(self, client: httpx.AsyncClient, mock_service: RecordService) -> None:
+        mock_service.get_record = AsyncMock(return_value=None)
+        response = await client.get("/api/v2/records/999")
+        assert response.status_code == HTTPStatus.OK
         assert response.json() == {}
+        mock_service.get_record.assert_called_once_with(999)
 
     @pytest.mark.parametrize("api_version", [1,2], indirect=True)
     async def test_create_record(self, client: httpx.AsyncClient, mock_service: RecordService, api_version: str) -> None:
@@ -102,7 +108,7 @@ class TestAPI:
         self, client: httpx.AsyncClient, mock_service: RecordService, api_version: str
     ) -> None:
         mock_service.get_latest_record_version = AsyncMock(return_value=self.record_v2)
-        response = await client.get(f"{api_version}/records/v2/latest?record_id=10")
+        response = await client.get(f"{api_version}/records/latest?record_id=10")
         assert response.status_code == HTTPStatus.OK
         body = response.json()
         assert body["record_id"] == self.record_v2.record_id
@@ -122,7 +128,7 @@ class TestAPI:
             ),
         ]
         mock_service.get_record_history = AsyncMock(return_value=history)
-        response = await client.get(f"{api_version}/records/v2/history?record_id=10")
+        response = await client.get(f"{api_version}/records/history?record_id=10")
         assert response.status_code == HTTPStatus.OK
         body = response.json()
         assert len(body) == 2
@@ -134,7 +140,7 @@ class TestAPI:
         self, client: httpx.AsyncClient, mock_service: RecordService, api_version: str
     ) -> None:
         mock_service.get_record_version = AsyncMock(return_value=self.record_v2)
-        response = await client.get(f"{api_version}/records/v2/version/3?record_id=10")
+        response = await client.get(f"{api_version}/records/version/3?record_id=10")
         assert response.status_code == HTTPStatus.OK
         body = response.json()
         assert body["record_id"] == self.record_v2.record_id
@@ -148,4 +154,3 @@ class TestAPI:
     @pytest.mark.skip(reason="endpoint not implemented yet")
     async def test_get_v1_record_via_v2_api(self) -> None:
         pass
-

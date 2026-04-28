@@ -88,3 +88,7 @@ class RecordV2QueryBuilder:
     def get_by_row_id(self, record_id: int, row_id: int) -> tuple[str, tuple]:
         """Gets a specific version by its autoincrement id, scoped to record_id."""
         return f"SELECT * FROM {_TABLE} WHERE id = ? AND record_id = ?;", (row_id, record_id)
+
+    def make_stale(self, row_id: int) -> tuple[str, tuple]:
+        """Marks the row with the given autoincrement id as STALE."""
+        return f"UPDATE {_TABLE} SET policy_status = 'STALE' WHERE id = ?;", (row_id,)

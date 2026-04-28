@@ -5,6 +5,7 @@ from typing import AsyncGenerator
 from entity.record import Record
 from entity.record_v2 import RecordV2, RecordV2Field
 from service.sqlite_record_service import SQLiteRecordService
+from service.record_service import ServiceError, ServiceErrorCode
 from service.queries import RECORDS_V1_TABLE, RECORDS_V2_TABLE, GET_TABLES, queries
 
 
@@ -210,3 +211,64 @@ class TestDatabase:
         end_dates = [r.policy_end_date for r in results]
         assert end_dates == sorted(end_dates)
         assert results[-1].policy_status == "ACTIVE"
+
+    # --- apply_update_v2 tests ---
+
+    async def test_apply_update_v2_creates_new_active_record(self, service) -> None:
+        '''apply_update_v2 returns a new ACTIVE row with the updated field values.'''
+        await service.create_record_v2(RecordV2(
+            record_id=20, company_id=1,
+            policy_start_date="2020-01-01", policy_end_date="2026-12-31",
+            policy_status="ACTIVE", policy_tier="BRONZE", policy_domain="shops",
+        ))
+        result = await service.apply_update_v2(20, {
+            RecordV2Field.POLICY_TIER: "GOLD",
+            RecordV2Field.POLICY_END_DATE: "2027-12-31",
+        })
+        assert result.record_id == 20
+        assert result.policy_status == "ACTIVE"
+        assert result.policy_tier == "GOLD"
+
+    async def test_apply_update_v2_marks_previous_row_stale(self, service) -> None:
+        '''apply_update_v2 sets the previous ACTIVE row to STALE before inserting the new one.'''
+        await service.create_record_v2(RecordV2(
+            record_id=20, company_id=1,
+            policy_start_date="2020-01-01", policy_end_date="2026-12-31",
+            policy_status="ACTIVE", policy_tier="BRONZE", policy_domain="shops",
+        ))
+        await service.apply_update_v2(20, {
+            RecordV2Field.POLICY_TIER: "GOLD",
+            RecordV2Field.POLICY_END_DATE: "2027-12-31",
+        })
+        history = await service.get_record_history(20)
+        assert len(history) == 2
+        assert history[0].policy_status == "STALE"   # earlier end_date (2026)
+        assert history[1].policy_status == "ACTIVE"  # later end_date (2027)
+
+    async def test_apply_update_v2_not_found_raises(self, service) -> None:
+        '''apply_update_v2 raises ServiceError.NOT_FOUND when record_id does not exist.'''
+        with pytest.raises(ServiceError) as exc_info:
+            await service.apply_update_v2(9999, {RecordV2Field.POLICY_TIER: "GOLD"})
+        assert exc_info.value.code == ServiceErrorCode.NOT_FOUND
+
+    async def test_apply_update_v2_chains_history(self, service) -> None:
+        '''Sequential apply_update_v2 calls produce a growing chain of STALE rows and one ACTIVE.'''
+        await service.create_record_v2(RecordV2(
+            record_id=20, company_id=1,
+            policy_start_date="2020-01-01", policy_end_date="2024-12-31",
+            policy_status="ACTIVE", policy_tier="BRONZE", policy_domain="shops",
+        ))
+        await service.apply_update_v2(20, {
+            RecordV2Field.POLICY_TIER: "SILVER",
+            RecordV2Field.POLICY_END_DATE: "2025-12-31",
+        })
+        await service.apply_update_v2(20, {
+            RecordV2Field.POLICY_TIER: "GOLD",
+            RecordV2Field.POLICY_END_DATE: "2026-12-31",
+        })
+        history = await service.get_record_history(20)
+        assert len(history) == 3
+        assert history[0].policy_status == "STALE"   # end_date 2024
+        assert history[1].policy_status == "STALE"   # end_date 2025
+        assert history[2].policy_status == "ACTIVE"  # end_date 2026
+        assert history[2].policy_tier == "GOLD"

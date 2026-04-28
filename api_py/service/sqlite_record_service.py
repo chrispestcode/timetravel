@@ -198,3 +198,44 @@ class SQLiteRecordService(RecordService):
         except Exception as err:
             log_error(err)
             raise
+
+    async def apply_update_v2(self, record_id: int, updates: dict[RecordV2Field, str]) -> RecordV2:
+        """Marks the current ACTIVE row STALE and inserts a new ACTIVE row with the given updates.
+
+        Args:
+            record_id: The record_id of the policy to update.
+            updates: Field values to apply to the new row.
+
+        Returns:
+            The newly inserted ACTIVE RecordV2.
+
+        Raises:
+            ServiceError: With code NOT_FOUND if no ACTIVE row exists for record_id.
+        """
+        current = await self.get_latest_record_version(record_id)
+        if current is None:
+            raise ServiceError.not_found()
+
+        stale_sql, stale_values = _qb.make_stale(current.id)
+
+        raw = current.model_dump(mode="json")
+        raw["id"] = None
+        raw["created_at"] = None
+        raw["last_updated"] = None
+        for field, value in updates.items():
+            raw[field.value] = value
+        new_record = RecordV2.model_validate(raw)
+        insert_sql, insert_values = _qb.insert(new_record)
+
+        try:
+            db = await self._get_db()
+            await db.execute(stale_sql, stale_values)
+            await db.execute(insert_sql, insert_values)
+            await db.commit()
+        except Exception as err:
+            log_error(err)
+            raise
+
+        result = await self.get_latest_record_version(record_id)
+        assert result is not None
+        return result

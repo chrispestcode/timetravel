@@ -30,7 +30,7 @@ queries = {
                     company_id INTEGER NOT NULL,
                     policy_start_date TEXT NOT NULL,
                     policy_end_date TEXT NOT NULL,
-                    policy_status TEXT CHECK(policy_status IN ('ACTIVE', 'CANCELLED', 'TERMINATED', 'PENDING')),
+                    policy_status TEXT CHECK(policy_status IN ('ACTIVE', 'CANCELLED', 'TERMINATED', 'PENDING', 'STALE')),
                     created_at DATETIME NOT NULL DEFAULT (strftime('{_ISO_DATETIME_FMT}', 'now')),
                     last_updated DATETIME NOT NULL DEFAULT (strftime('{_ISO_DATETIME_FMT}', 'now')),
                     policy_tier TEXT NOT NULL,
