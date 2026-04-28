@@ -32,7 +32,7 @@ class TestE2E:
 
         app = FastAPI()
         api = API(records=record_service)
-        app.include_router(api.router, prefix="/api/v2")
+        app.include_router(api.v2_router, prefix="/api/v2")
 
         async with httpx.AsyncClient(
             transport=httpx.ASGITransport(app=app), base_url="http://test"
@@ -61,14 +61,14 @@ class TestE2E:
         assert response.json()["data"]["company_name"] == "Acme Updated"
 
     async def test_get_latest_record_version(self, client: httpx.AsyncClient) -> None:
-        response = await client.get("/api/v2/records/v2/latest?record_id=10")
+        response = await client.get("/api/v2/records/latest?record_id=10")
         assert response.status_code == HTTPStatus.OK
         body = response.json()
         assert body["record_id"] == 10
         assert body["policy_status"] == "ACTIVE"
 
     async def test_get_record_history(self, client: httpx.AsyncClient) -> None:
-        response = await client.get("/api/v2/records/v2/history?record_id=10")
+        response = await client.get("/api/v2/records/history?record_id=10")
         assert response.status_code == HTTPStatus.OK
         body = response.json()
         assert len(body) == 2
@@ -77,7 +77,7 @@ class TestE2E:
 
     async def test_get_specific_version(self, client: httpx.AsyncClient) -> None:
         # version_id=1 is the autoincrement id of the first inserted v2 record (CANCELLED)
-        response = await client.get("/api/v2/records/v2/version/1?record_id=10")
+        response = await client.get("/api/v2/records/version/1?record_id=10")
         assert response.status_code == HTTPStatus.OK
         body = response.json()
         assert body["record_id"] == 10

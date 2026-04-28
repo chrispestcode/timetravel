@@ -3,7 +3,7 @@ from enum import IntEnum
 from typing import Protocol
 
 from entity.record import Record
-from entity.record_v2 import RecordV2
+from entity.record_v2 import RecordV2, RecordV2Field
 
 
 class ServiceErrorCode(IntEnum):
@@ -70,3 +70,4 @@ class RecordV2Protocol(Protocol):
     async def get_latest_record_version(self, record_id: int) -> RecordV2 | None: ...
     async def get_record_history(self, record_id: int) -> list[RecordV2]: ...
     async def get_record_version(self, record_id: int, version_id: int) -> RecordV2 | None: ...
+    async def apply_update_v2(self, record_id: int, updates: dict[RecordV2Field, str]) -> RecordV2: ...
